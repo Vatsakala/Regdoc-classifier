@@ -1,10 +1,14 @@
 # backend/llm_client.py
 import os
-import json
 import requests
-from typing import Dict, Any
+from typing import Any, Dict, Optional
+import json
 
-OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY")
+from dotenv import load_dotenv
+
+# Load environment variables from .env at project root
+load_dotenv()
+
 OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions"
 
 
@@ -12,21 +16,24 @@ def call_openrouter_chat(
     model: str,
     system_prompt: str,
     user_prompt: str,
-    response_format_json: bool = True,
-    temperature: float = 0.1,
-) -> Dict[str, Any] | str:
+    response_format_json: bool = False,
+    temperature: float = 0.7,
+) -> Dict[str, Any]:
     """
-    Simple helper to call OpenRouter's chat/completions endpoint.
-    Uses the OPENROUTER_API_KEY environment variable.
+    Thin wrapper around OpenRouter chat/completions.
+    Returns either parsed JSON (if response_format_json=True) or raw string.
     """
-    if not OPENROUTER_API_KEY:
-        raise RuntimeError("OPENROUTER_API_KEY environment variable is not set")
+    api_key = os.getenv("OPENROUTER_API_KEY")
+    if not api_key:
+        # Fail early with a clear message instead of 401 later
+        raise RuntimeError(
+            "OPENROUTER_API_KEY is not set. "
+            "Create a .env file with OPENROUTER_API_KEY=... in the project root."
+        )
 
     headers = {
-        "Authorization": f"Bearer {OPENROUTER_API_KEY}",
+        "Authorization": f"Bearer {api_key}",
         "Content-Type": "application/json",
-        "HTTP-Referer": "http://localhost",
-        "X-Title": "RegDoc Classifier",
     }
 
     payload: Dict[str, Any] = {
@@ -41,12 +48,20 @@ def call_openrouter_chat(
     if response_format_json:
         payload["response_format"] = {"type": "json_object"}
 
-    resp = requests.post(OPENROUTER_URL, headers=headers, json=payload, timeout=90)
-    resp.raise_for_status()
-    data = resp.json()
+    resp = requests.post(OPENROUTER_URL, headers=headers, json=payload, timeout=60)
+    # If unauthorized or any other error, this raises with the right status code
+    try:
+        resp.raise_for_status()
+    except requests.HTTPError as e:
+        # Print server message to your terminal for easier debugging
+        print("[OpenRouter ERROR]", resp.status_code, resp.text)
+        raise
 
+    data = resp.json()
     content = data["choices"][0]["message"]["content"]
 
     if response_format_json:
+        # The model is instructed to return JSON only
         return json.loads(content)
-    return content
+
+    return {"raw": content}

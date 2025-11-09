@@ -1,0 +1,6 @@
+{
+  "default": ["base_classification.txt"],
+  "public": ["base_classification.txt", "public.txt"],
+  "sensitive": ["base_classification.txt", "sensitive.txt"],
+  "unsafe": ["base_classification.txt", "unsafe.txt"]
+}

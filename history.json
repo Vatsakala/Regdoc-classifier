@@ -18,5 +18,53 @@
     "confidence": 0.9,
     "timestamp": "2025-11-09T00:04:31.872609Z",
     "reviewer_comment": "not kidsafe"
+  },
+  {
+    "filename": "TC1_Sample_Public_Marketing_Document.pdf",
+    "pages": 8,
+    "images": 43,
+    "ai_category": "Confidential",
+    "final_category": "Public",
+    "unsafe": false,
+    "kid_safe": true,
+    "confidence": 0.8,
+    "timestamp": "2025-11-09T02:08:27.686651Z",
+    "reviewer_comment": "Not public"
+  },
+  {
+    "filename": "TC4_ Stealth_Fighter_With_Part_Names.pdf",
+    "pages": 18,
+    "images": 3,
+    "ai_category": "Confidential",
+    "final_category": "Public",
+    "unsafe": false,
+    "kid_safe": true,
+    "confidence": 0.9,
+    "timestamp": "2025-11-09T02:09:57.170928Z",
+    "reviewer_comment": "brochure"
+  },
+  {
+    "filename": "ChatGPT Image Mar 27, 2025, 08_45_11 PM.png",
+    "pages": 1,
+    "images": 1,
+    "ai_category": "Public",
+    "final_category": "Public",
+    "unsafe": false,
+    "kid_safe": true,
+    "confidence": 0.9,
+    "timestamp": "2025-11-09T03:16:31.235985Z",
+    "reviewer_comment": "Not confidential"
+  },
+  {
+    "filename": "fuck.pdf",
+    "pages": 1,
+    "images": 0,
+    "ai_category": "Confidential",
+    "final_category": "Highly Sensitive",
+    "unsafe": false,
+    "kid_safe": false,
+    "confidence": 0.8,
+    "timestamp": "2025-11-09T03:18:24.108993Z",
+    "reviewer_comment": "has ssn"
   }
 ]

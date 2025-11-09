@@ -1,8 +1,8 @@
+import concurrent.futures
 import streamlit as st
 from backend.ingestion import process_file
 from backend.classification import classify_document
 from backend.storage import save_result, load_history
-
 
 st.set_page_config(page_title="RegDoc Classifier", layout="wide")
 
@@ -12,138 +12,203 @@ page = st.sidebar.radio("Go to", ["Upload & Analyze", "History & Audit"])
 st.sidebar.markdown("---")
 st.sidebar.caption("Hitachi DS Datathon • AI-Powered Regulatory Classifier")
 
-
+# ----------------------------------------------------------------------
+# PAGE 1: Upload & Analyze (multi-file, parallel, with SUMMARY + HITL)
+# ----------------------------------------------------------------------
 if page == "Upload & Analyze":
-    st.title("Regulatory Document Classifier")
+    st.title("Upload & Analyze Documents")
     st.caption(
-        "Classify documents as **Public**, **Confidential**, **Highly Sensitive**, "
-        "or **Unsafe**, with page-level evidence and human review."
+        "Upload one or more documents. The app will classify them, show page-level summaries, "
+        "and let you approve or override each result."
     )
 
     uploaded_files = st.file_uploader(
-        "Upload one or more documents (PDF or image)",
+        "Upload PDF or image files",
         type=["pdf", "png", "jpg", "jpeg"],
         accept_multiple_files=True,
     )
 
-    if uploaded_files:
-        for uploaded_file in uploaded_files:
+    run_clicked = st.button(
+        "Run Analysis",
+        type="primary",
+        disabled=not uploaded_files,
+    )
+
+    if run_clicked and uploaded_files:
+        st.info(f"{len(uploaded_files)} file(s) selected.")
+        progress = st.progress(0.0)
+        status_placeholder = st.empty()
+        results = []
+
+        def process_single(uploaded_file):
+            """Ingest + classify a single file (used in threads)."""
+            doc_info = process_file(uploaded_file)
+            ai_result = classify_document(doc_info)
+            return {
+                "filename": uploaded_file.name,
+                "doc_info": doc_info,
+                "ai_result": ai_result,
+            }
+
+        total = len(uploaded_files)
+        done = 0
+
+        # Run all docs concurrently (good for I/O + network-bound LLM calls)
+        with concurrent.futures.ThreadPoolExecutor(
+            max_workers=min(4, total)
+        ) as executor:
+            future_to_file = {
+                executor.submit(process_single, f): f for f in uploaded_files
+            }
+            for future in concurrent.futures.as_completed(future_to_file):
+                f = future_to_file[future]
+                try:
+                    result = future.result()
+                    results.append(result)
+                    done += 1
+                    progress.progress(done / total)
+                    status_placeholder.write(f"Finished: {f.name}")
+                except Exception as e:
+                    st.error(f"Error processing {f.name}: {e}")
+
+        progress.empty()
+        status_placeholder.empty()
+        st.success("All files processed.")
+
+        # ---- SHOW RESULTS + SUMMARY + HITL FOR EACH DOC ----
+        for item in results:
+            filename = item["filename"]
+            doc_info = item["doc_info"]
+            ai_result = item["ai_result"]
+
             st.markdown("---")
-            st.subheader(f"File: {uploaded_file.name}")
+            st.subheader(f"{filename}")
 
-            with st.spinner("Pre-processing document..."):
-                doc_info = process_file(uploaded_file)
+            # Stats / metrics
+            # Stats / metrics (includes image count)
+            col_top1, col_top2, col_top3, col_top4, col_top5 = st.columns(5)
+            col_top1.metric("AI Category", ai_result.get("category", "—"))
+            col_top2.metric("Unsafe", "Yes" if ai_result.get("unsafe") else "No")
+            col_top3.metric("Kid-safe", "Yes" if ai_result.get("kid_safe") else "No")
+            col_top4.metric(
+                "Confidence",
+                f"{ai_result.get('confidence', 0.0) * 100:.0f}%"
+            )
+            col_top5.metric("Image Count", doc_info.get("num_images", 0))
 
-            col1, col2, col3 = st.columns(3)
-            col1.metric("Pages", doc_info["num_pages"])
-            col2.metric("Images", doc_info["num_images"])
-            col3.metric("Legible", "Yes" if doc_info["legible"] else "Check manually")
+            # AI reasoning
+            st.markdown("**AI Reasoning**")
+            st.write(ai_result.get("reasoning", "No reasoning provided."))
 
-            with st.expander("View page summaries"):
-                for p in doc_info["pages"]:
-                    st.markdown(f"**Page {p['page_num']}**")
-                    st.write(p["text"][:500] or "*No text extracted*")
+            # Citations
+            citations = ai_result.get("citations") or []
+            if citations:
+                st.markdown("**Citations**")
+                st.table(citations)
 
-            with st.spinner("Running classification..."):
-                result = classify_document(doc_info)
+            # 🔹 SUMMARY: page-level text preview (this is what was “missing”)
+            pages = doc_info.get("pages", [])
+            with st.expander("Document summary", expanded=False):
+                if not pages:
+                    st.write("No text was extracted from this document.")
+                else:
+                    for p in pages:
+                        page_num = p.get("page_num") or p.get("page") or "?"
+                        text = (p.get("text") or "").strip()
+                        if len(text) > 600:
+                            text_display = text[:600] + "..."
+                        else:
+                            text_display = text
+                        st.markdown(f"**Page {page_num}**")
+                        if text_display:
+                            st.write(text_display)
+                        else:
+                            st.write("_No text on this page._")
 
-            st.markdown("### Classification Result")
-            c1, c2, c3, c4 = st.columns(4)
-            c1.metric("Category", result["category"])
-            c2.metric("Unsafe", "Yes" if result["unsafe"] else "No")
-            c3.metric("Kid-safe", "Yes" if result["kid_safe"] else "No")
-            c4.metric("Confidence", f"{result['confidence']*100:.0f}%")
-
-            st.markdown("**Reasoning**")
-            st.write(result["reasoning"])
-
-            st.markdown("**Citations (pages and reasons)**")
-            if result["citations"]:
-                st.table(result["citations"])
-            else:
-                st.write("No specific citations generated yet.")
-
-            st.markdown("### Human-in-the-Loop Review")
-
-            override = st.selectbox(
+            # 🧠 Human-in-the-loop review
+            st.markdown("### Human Review")
+            override_choice = st.selectbox(
                 "Override AI category (optional)",
-                [
-                    "No override",
-                    "Public",
-                    "Confidential",
-                    "Highly Sensitive",
-                    "Unsafe",
-                    "Confidential and Unsafe",
-                ],
-                key=f"override_{uploaded_file.name}",
-            )
-            comment = st.text_area(
-                "Reviewer comment (optional)",
-                key=f"comment_{uploaded_file.name}",
+                ["No override", "Public", "Confidential", "Highly Sensitive", "Unsafe"],
+                key=f"override_{filename}",
             )
 
-            if st.button("Save Review", key=f"save_{uploaded_file.name}"):
+            reviewer_comment = st.text_area(
+                "Reviewer comment",
+                key=f"comment_{filename}",
+                placeholder="Explain why you approved or changed the AI decision...",
+            )
+
+            if st.button(f"Save"):
                 final_category = (
-                    result["category"] if override == "No override" else override
+                    ai_result.get("category", "Public")
+                    if override_choice == "No override"
+                    else override_choice
                 )
-                save_result(
-                    filename=uploaded_file.name,
-                    doc_info=doc_info,
-                    ai_result=result,
-                    final_category=final_category,
-                    reviewer_comment=comment,
-                )
-                st.success("Review saved to audit log.")
+                try:
+                    save_result(
+                        filename=filename,
+                        doc_info=doc_info,
+                        ai_result=ai_result,
+                        final_category=final_category,
+                        reviewer_comment=reviewer_comment.strip(),
+                    )
+                    st.success(f"Review for '{filename}' saved to history.json.")
+                except Exception as e:
+                    st.error(f"Could not save review for {filename}: {e}")
 
+# ----------------------------------------------------------------------
+# PAGE 2: History & Audit
+# ----------------------------------------------------------------------
 elif page == "History & Audit":
     st.title("History & Audit Trail")
 
     history = load_history()
     if not history:
-        st.info("No documents processed yet. Go to 'Upload & Analyze', run a document, and click 'Save Review'.")
+        st.info(
+            "No documents processed yet. Go to 'Upload & Analyze', run a document, "
+            "and click 'Save Review'."
+        )
     else:
         import pandas as pd
 
         df = pd.DataFrame(history)
 
         st.subheader("Processed Documents")
-        st.dataframe(
-            df[[
+        df_sorted = df.sort_values("timestamp", ascending=False)
+
+        show_cols = [
+            c for c in [
                 "timestamp",
                 "filename",
-                "pages",
-                "images",
                 "ai_category",
                 "final_category",
                 "unsafe",
                 "kid_safe",
                 "confidence",
-            ]].sort_values("timestamp", ascending=False),
-            use_container_width=True,
-        )
+                "reviewer_comment",
+            ]
+            if c in df_sorted.columns
+        ]
 
-        st.subheader("Category Distribution (Final)")
-        st.bar_chart(df["final_category"].value_counts())
+        st.dataframe(df_sorted[show_cols], use_container_width=True)
 
-        st.subheader("Unsafe vs Kid-safe")
-        col1, col2 = st.columns(2)
-        col1.metric("Total Unsafe", int(df["unsafe"].sum()))
-        col2.metric("Kid-safe Documents", int(df["kid_safe"].sum()))
+        filenames = df_sorted["filename"].unique().tolist()
+        selected = st.selectbox("Select a document to inspect", filenames)
 
-        selected = st.selectbox(
-            "Inspect a document",
-            options=df.sort_values("timestamp", ascending=False)["filename"].unique(),
-        )
-
-        doc_rows = df[df["filename"] == selected].sort_values("timestamp", ascending=False)
+        doc_rows = df_sorted[df_sorted["filename"] == selected]
         latest = doc_rows.iloc[0]
 
         st.markdown(f"### Latest review for: `{selected}`")
-        st.write(f"**AI Category:** {latest['ai_category']}")
-        st.write(f"**Final Category:** {latest['final_category']}")
-        st.write(f"**Unsafe:** {latest['unsafe']}")
-        st.write(f"**Kid-safe:** {latest['kid_safe']}")
-        st.write(f"**Confidence:** {latest['confidence']:.2f}")
+        st.write(f"**AI Category:** {latest.get('ai_category')}")
+        st.write(f"**Final Category:** {latest.get('final_category')}")
+        st.write(f"**Unsafe:** {latest.get('unsafe')}")
+        st.write(f"**Kid-safe:** {latest.get('kid_safe')}")
+        conf_val = latest.get("confidence")
+        if conf_val is not None:
+            try:
+                st.write(f"**Confidence:** {float(conf_val):.2f}")
+            except Exception:
+                st.write(f"**Confidence:** {conf_val}")
         st.write(f"**Reviewer comment:** {latest.get('reviewer_comment') or '—'}")
-        st.write(f"**Timestamp (UTC):** {latest['timestamp']}")
-
+        st.write(f"**Timestamp (UTC):** {latest.get('timestamp')}")

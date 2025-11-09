@@ -1,0 +1,141 @@
+===== CONTEXT: PII DETECTED =====
+
+Personally Identifiable Information (PII) was found in this document.
+
+===== STEP 1: IDENTIFY PII TYPE =====
+
+Check what was detected in pii_findings:
+
+TYPE A - SOCIAL SECURITY NUMBER (SSN):
+Format: XXX-XX-XXXX or 9 consecutive digits
+Examples: 123-45-6789, 987654321
+ACTION: MUST classify as "Highly Sensitive"
+
+TYPE B - CREDIT CARD NUMBER:
+Format: 16 digits (may have spaces/dashes)
+Examples: 1234-5678-9012-3456, 1234567890123456
+ACTION: MUST classify as "Highly Sensitive"
+
+TYPE C - PERSONAL CONTACT:
+- Personal email: john.doe@gmail.com, jane@yahoo.com
+- Personal phone: (555) 123-4567 without company name nearby
+- Home address: 123 Main St, Apt 4B
+ACTION: Classify as "Highly Sensitive"
+
+TYPE D - BUSINESS CONTACT (NOT SENSITIVE):
+- Business email: info@company.com, sales@acme.com, support@business.com
+- Business phone: 1-800-555-0100, (555) 555-CORP
+ACTION: Does NOT increase sensitivity
+Can remain "Public" if no other sensitive data
+
+===== STEP 2: APPLY DECISION TREE =====
+
+If SSN found:
+  → category = "Highly Sensitive"
+  → Cite exact page with SSN
+  → Confidence depends on clarity: clear SSN format = higher, ambiguous = lower
+
+Else if credit card found:
+  → category = "Highly Sensitive"
+  → Cite exact page with credit card number
+  → Confidence depends on: full number vs partial, context clarity
+
+Else if personal email OR personal phone found:
+  → category = "Highly Sensitive"
+  → Cite pages with personal contact info
+  → Confidence depends on: how many instances, how clearly personal vs business
+
+Else if ONLY business contact found:
+  → category = "Public" OR "Confidential" (based on other content)
+  → Add to reasoning: "Only business contact detected (not personally sensitive)"
+  → Confidence based on overall document content and purpose
+
+===== CONFIDENCE FACTORS FOR SENSITIVE DOCUMENTS =====
+
+Higher confidence:
+- Clear, unambiguous SSN or credit card number
+- Multiple instances of personal PII
+- Context clearly shows personal (not business) information
+- Form fields explicitly labeled (SSN:, Personal Email:, etc.)
+
+Lower confidence:
+- Partial numbers that might be SSN or might be something else
+- Ambiguous whether contact is personal or business
+- Limited context around the PII
+- Numbers that could be dates, IDs, or other non-PII
+
+===== STEP 3: CHECK FOR UNSAFE OVERRIDE =====
+
+If PII document ALSO contains unsafe content:
+  → category = "Highly Sensitive and Unsafe"
+  → unsafe = true
+  → kid_safe = false
+
+===== EXAMPLES =====
+
+Example 1 - Clear Employment Application:
+Input: Completed form with clear fields "SSN: 123-45-6789", "DOB: 01/15/1985", labeled sections
+Output:
+{
+  "category": "Highly Sensitive",
+  "unsafe": false,
+  "kid_safe": true,
+  "confidence": 0.96,
+  "reasoning": "Employment application with clearly labeled Social Security Number and date of birth in standard form format",
+  "citations": [
+    {"page": 2, "reason": "SSN 123-45-6789 in clearly labeled employment form field"},
+    {"page": 2, "reason": "Date of birth in personal information section"}
+  ]
+}
+
+Example 2 - Customer List with Mixed Quality:
+Input: Spreadsheet with names and some email addresses, some appear personal (gmail) others unclear
+Output:
+{
+  "category": "Highly Sensitive",
+  "unsafe": false,
+  "kid_safe": true,
+  "confidence": 0.79,
+  "reasoning": "Customer list contains what appear to be personal email addresses, though some entries are incomplete or unclear",
+  "citations": [
+    {"page": 1, "reason": "Multiple Gmail addresses suggesting personal email in customer records"},
+    {"page": 1, "reason": "Phone numbers without clear business context"}
+  ]
+}
+
+Example 3 - Marketing with Business Contact Only:
+Input: Brochure with "Questions? Email info@acme.com or call 1-800-555-0100"
+Output:
+{
+  "category": "Public",
+  "unsafe": false,
+  "kid_safe": true,
+  "confidence": 0.88,
+  "reasoning": "Marketing brochure contains only standard business contact information, no personal identifiable data detected",
+  "citations": [
+    {"page": 1, "reason": "Generic business email info@acme.com (not personally identifiable)"}
+  ]
+}
+
+Example 4 - Partial or Ambiguous Data:
+Input: Document with numbers that might be SSN (123-45-XXXX) and contact info with unclear context
+Output:
+{
+  "category": "Highly Sensitive",
+  "unsafe": false,
+  "kid_safe": true,
+  "confidence": 0.67,
+  "reasoning": "Document contains partially redacted numbers in SSN format and contact information without clear business context, treating as sensitive out of caution",
+  "citations": [
+    {"page": 3, "reason": "Partially visible number matching SSN format"},
+    {"page": 3, "reason": "Contact information without clear business association"}
+  ]
+}
+
+===== CRITICAL REMINDERS =====
+
+- SSN = ALWAYS "Highly Sensitive" but vary confidence based on clarity
+- Personal email (gmail.com, yahoo.com) = "Highly Sensitive"
+- Business email (info@company.com) = NOT sensitive
+- Confidence should reflect: evidence clarity, amount of PII, certainty of interpretation
+- When in doubt about business vs personal, err toward "Highly Sensitive" with moderate confidence

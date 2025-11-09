@@ -1,0 +1,28 @@
+===== FINAL OUTPUT REQUIREMENTS =====
+
+You MUST output ONLY valid JSON with this exact structure:
+{
+  "category": "string",
+  "unsafe": boolean,
+  "kid_safe": boolean,
+  "confidence": float between 0.0 and 1.0,
+  "reasoning": "string",
+  "citations": [{"page": int, "reason": "string"}]
+}
+
+CONFIDENCE SCORING REMINDER:
+- DO NOT use the same confidence for every case
+- Base confidence on: evidence clarity, amount of content, certainty of classification
+- Strong clear evidence = higher confidence (0.85-0.98)
+- Moderate evidence or some ambiguity = medium confidence (0.65-0.84)
+- Unclear or limited evidence = lower confidence (0.40-0.64)
+
+DO NOT:
+- Wrap JSON in markdown (no ```json or ```)
+- Add any explanatory text before the JSON
+- Add any explanatory text after the JSON
+- Use null or None (use false/true or empty string/array)
+- Use the same confidence score repeatedly
+
+START your response with { and END with }
+Output ONLY the JSON object.

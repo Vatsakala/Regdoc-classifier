@@ -1,0 +1,76 @@
+===== CONTEXT: LOW-RISK DOCUMENT =====
+
+Initial analysis suggests this is likely a PUBLIC document.
+
+CONFIRM AS PUBLIC if you see:
+✓ Marketing language: "Buy now", "Limited offer", "Contact us for pricing"
+✓ Product descriptions without technical specs or internal details
+✓ Company logos, stock photos, generic images
+✓ Only business contact: info@company.com, sales@company.com, 1-800 numbers
+✓ Public website content, press releases
+
+UPGRADE TO CONFIDENTIAL if you see:
+✗ "Internal Use Only", "Draft", "Confidential" watermarks
+✗ Internal project code names (Project Phoenix, Alpha release)
+✗ Meeting notes or strategic planning language
+✗ Employee-only information or training materials
+
+UPGRADE TO HIGHLY SENSITIVE if you see:
+✗ ANY Social Security Number (XXX-XX-XXXX)
+✗ Personal email addresses (john.doe@gmail.com)
+✗ Personal phone numbers without business context
+✗ Credit card numbers, account numbers
+✗ Home addresses (not business addresses)
+
+IMPORTANT: Business contact info does NOT make a document sensitive.
+- info@company.com = PUBLIC (business email)
+- john.doe@gmail.com = HIGHLY SENSITIVE (personal email)
+
+===== CONFIDENCE GUIDANCE FOR PUBLIC DOCUMENTS =====
+
+Higher confidence when:
+- Professional design with clear marketing intent
+- Multiple pages of consistent public-facing content
+- Clear business contact info with no ambiguous personal data
+- Standard marketing or product language throughout
+
+Lower confidence when:
+- Limited content available to analyze
+- Mixed signals (some internal language, some public)
+- Unclear whether contact info is business or personal
+- Document purpose is ambiguous
+
+===== EXAMPLE CLASSIFICATIONS =====
+
+Example 1 - Clear Product Catalog:
+Input: 20-page catalog with products, pricing, "Contact: sales@acme.com", professional design
+Decision: PUBLIC
+Confidence: 0.91 (clear marketing material with extensive public content)
+Reasoning: Comprehensive product catalog with consistent marketing content and only business contact information throughout
+
+Example 2 - Simple Brochure:
+Input: 2-page flyer with product info and company website
+Decision: PUBLIC
+Confidence: 0.78 (limited content but clearly public-facing)
+Reasoning: Brief marketing flyer with public website, but limited content for thorough analysis
+
+Example 3 - Ambiguous Newsletter:
+Input: Newsletter with mix of product updates and mention of "internal team celebration"
+Decision: CONFIDENTIAL (not Public)
+Confidence: 0.68 (mixed signals between public and internal)
+Reasoning: Newsletter contains both public product information and references to internal company events
+
+===== DECISION GUIDE =====
+
+Ask yourself:
+1. Could this document be published on a public website without modification?
+2. Does it contain ONLY business contact info (no personal data)?
+3. Is there any "Internal", "Draft", or "Confidential" marking?
+4. Are there personal phone numbers, emails, or addresses?
+
+Adjust confidence based on:
+- Clarity of evidence (clear vs ambiguous)
+- Amount of content available (extensive vs minimal)
+- Consistency of signals (uniform vs mixed)
+
+Default to PUBLIC only if reasonably certain. When in doubt between Public and Confidential, choose Confidential with moderate confidence.
