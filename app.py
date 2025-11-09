@@ -194,7 +194,7 @@ if page == "Upload & Analyze":
                         final_category=final_category,
                         reviewer_comment=reviewer_comment.strip(),
                     )
-                    st.success(f"Review for '{filename}' saved to history.json.")
+                    st.success(f"Review for '{filename}' saved")
                 except Exception as e:
                     st.error(f"Could not save review for {filename}: {e}")
 
