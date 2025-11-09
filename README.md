@@ -1,7 +1,8 @@
 # RegDoc: AI Powered Regulatory Document Classifier
 
 Hitachi Digital Services | Texas A&M Datathon 2025
-🌐 **Live Demo:** [regdoc.streamlit.app](https://regdoc.streamlit.app)
+
+**Live Demo:** [regdoc.streamlit.app](https://regdoc.streamlit.app)
 ---
 
 ## Overview
@@ -167,5 +168,6 @@ OPENROUTER_API_KEY=sk-or-v1-your-key-here
 ```bash
 streamlit run app.py
 ```
+
 
 
