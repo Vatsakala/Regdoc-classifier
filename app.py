@@ -1,3 +1,4 @@
+import os
 import concurrent.futures
 import streamlit as st
 from backend.ingestion import process_file
@@ -30,6 +31,9 @@ st.markdown(
 # 🔹 Session state for results so UI doesn't reset on interaction
 if "results" not in st.session_state:
     st.session_state["results"] = []
+
+# 🔹 History path at project root (same file backend.storage writes to)
+HISTORY_PATH = os.path.join(os.path.dirname(__file__), "history.json")
 
 # ----------------------------------------------------------------------
 # SIDEBAR NAVIGATION
@@ -194,14 +198,14 @@ if page == "Upload & Analyze":
                         final_category=final_category,
                         reviewer_comment=reviewer_comment.strip(),
                     )
-                    st.success(f"Review for '{filename}' saved")
+                    st.success(f"Review for '{filename}' saved to history.json.")
                 except Exception as e:
                     st.error(f"Could not save review for {filename}: {e}")
 
-        # Optional: button to clear current session results
+        # Optional: button to clear current session results (not history.json)
         if st.button("Clear current results"):
             st.session_state["results"] = []
-            st.experimental_rerun()
+            st.rerun()
 
 # ----------------------------------------------------------------------
 # PAGE 2: History & Audit
@@ -210,6 +214,22 @@ elif page == "History & Audit":
     st.title("History & Audit Trail")
 
     history = load_history()
+
+    # 🔴 Simple clear-history button (no dropdown/expander)
+    st.markdown("#### Clear audit history")
+    st.caption(
+        "This will permanently delete all entries from the audit trail "
+        "(history.json in the project root) and cannot be undone."
+    )
+    if st.button("Clear ALL history"):
+        try:
+            if os.path.exists(HISTORY_PATH):
+                os.remove(HISTORY_PATH)
+            st.success("Audit history cleared.")
+            st.rerun()
+        except Exception as e:
+            st.error(f"Could not clear history: {e}")
+
     if not history:
         st.info(
             "No documents processed yet. Go to 'Upload & Analyze', run a document, "
