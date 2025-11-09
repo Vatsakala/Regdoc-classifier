@@ -1,25 +1,5 @@
 [
   {
-    "filename": "fuck.pdf",
-    "ai_category": "Highly Sensitive",
-    "final_category": "Unsafe",
-    "unsafe": false,
-    "timestamp": "2025-11-08T23:49:21.058496Z",
-    "reviewer_comment": "abusive words"
-  },
-  {
-    "filename": "fuck.pdf",
-    "pages": 1,
-    "images": 0,
-    "ai_category": "Highly Sensitive",
-    "final_category": "Unsafe",
-    "unsafe": false,
-    "kid_safe": true,
-    "confidence": 0.9,
-    "timestamp": "2025-11-09T00:04:31.872609Z",
-    "reviewer_comment": "not kidsafe"
-  },
-  {
     "filename": "TC1_Sample_Public_Marketing_Document.pdf",
     "pages": 8,
     "images": 43,
@@ -54,17 +34,5 @@
     "confidence": 0.9,
     "timestamp": "2025-11-09T03:16:31.235985Z",
     "reviewer_comment": "Not confidential"
-  },
-  {
-    "filename": "fuck.pdf",
-    "pages": 1,
-    "images": 0,
-    "ai_category": "Confidential",
-    "final_category": "Highly Sensitive",
-    "unsafe": false,
-    "kid_safe": false,
-    "confidence": 0.8,
-    "timestamp": "2025-11-09T03:18:24.108993Z",
-    "reviewer_comment": "has ssn"
   }
 ]
