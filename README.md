@@ -145,7 +145,7 @@ cd <your-project-folder>
 
 ### 3. Install Dependencies
 
-####Install all required dependencies:
+#### Install all required dependencies:
 
 ```bash
 pip install -r requirements.txt
@@ -168,6 +168,7 @@ OPENROUTER_API_KEY=sk-or-v1-your-key-here
 ```bash
 streamlit run app.py
 ```
+
 
 
 
